@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "SEO 색인 요청 관리자",
+  "version": "1.0.0",
+  "description": "네이버, 다음, 구글, 빙 웹마스터에 자동으로 색인 요청을 보내는 확장프로그램",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "tabs",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://searchadvisor.naver.com/*",
+    "https://webmaster.daum.net/*",
+    "https://search.google.com/*",
+    "https://www.bing.com/webmasters/*",
+    "http://localhost:*/*",
+    "https://*.up.railway.app/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://searchadvisor.naver.com/*",
+        "https://webmaster.daum.net/*"
+      ],
+      "js": ["content-scripts/webmaster-automation.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
