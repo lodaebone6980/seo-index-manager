@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 380px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 13px;
+    }
+    .header {
+      background: #1e293b;
+      padding: 16px;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header h1 { font-size: 15px; font-weight: 700; color: #fff; }
+    .header .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot.connected { background: #22c55e; }
+    .dot.disconnected { background: #ef4444; }
+
+    .section { padding: 12px 16px; border-bottom: 1px solid #1e293b; }
+    .section-title { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+    .config-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .config-row label { color: #94a3b8; font-size: 12px; min-width: 70px; }
+    .config-row input {
+      flex: 1; background: #1e293b; border: 1px solid #334155; border-radius: 6px;
+      padding: 6px 10px; color: #fff; font-size: 12px; outline: none;
+    }
+    .config-row input:focus { border-color: #3b82f6; }
+
+    select {
+      background: #1e293b; border: 1px solid #334155; border-radius: 6px;
+      padding: 6px 10px; color: #fff; font-size: 12px; outline: none; width: 100%;
+    }
+
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+      font-size: 12px; font-weight: 600; transition: all 0.2s; width: 100%;
+    }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-sm { padding: 6px 12px; font-size: 11px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .engine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .engine-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px; border-radius: 8px; border: 1px solid #334155;
+      background: #1e293b; cursor: pointer; transition: all 0.2s;
+    }
+    .engine-btn:hover { border-color: #3b82f6; }
+    .engine-btn.active { border-color: #3b82f6; background: #1e3a5f; }
+    .engine-btn .name { color: #fff; font-weight: 600; font-size: 12px; }
+    .engine-btn .dot-engine { width: 10px; height: 10px; border-radius: 50%; }
+
+    .status-box {
+      background: #1e293b; border-radius: 8px; padding: 12px;
+      border: 1px solid #334155; margin-top: 8px;
+    }
+    .status-text { color: #94a3b8; font-size: 12px; }
+    .status-url { color: #60a5fa; font-size: 11px; word-break: break-all; margin-top: 4px; }
+    .status-count { color: #22c55e; font-weight: 700; font-size: 16px; }
+
+    .link {
+      color: #60a5fa; text-decoration: none; font-size: 12px; cursor: pointer;
+    }
+    .link:hover { text-decoration: underline; }
+
+    .msg { padding: 8px; border-radius: 6px; font-size: 11px; margin-top: 8px; }
+    .msg.success { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+    .msg.error { background: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="dot" id="connectionDot"></span>
+    <h1>SEO 색인 관리자</h1>
+  </div>
+
+  <!-- 서버 연결 설정 -->
+  <div class="section">
+    <div class="section-title">서버 연결</div>
+    <div class="config-row">
+      <label>서버 URL</label>
+      <input type="text" id="serverUrl" placeholder="http://localhost:3000">
+    </div>
+    <button class="btn btn-sm btn-primary" id="btnTestConnection" style="width:auto; margin-left: auto;">연결 테스트</button>
+    <div id="connectionMsg"></div>
+  </div>
+
+  <!-- API 키 설정 -->
+  <div class="section">
+    <div class="section-title">API 키 설정</div>
+    <div class="config-row">
+      <label>Google</label>
+      <input type="password" id="googleApiKey" placeholder="Google Indexing API Key">
+    </div>
+    <div class="config-row">
+      <label>Bing</label>
+      <input type="password" id="bingApiKey" placeholder="Bing Webmaster API Key">
+    </div>
+    <button class="btn btn-sm btn-primary" id="btnSaveConfig" style="width:auto;">설정 저장</button>
+  </div>
+
+  <!-- 사이트 선택 -->
+  <div class="section">
+    <div class="section-title">사이트 선택</div>
+    <select id="siteSelect">
+      <option value="">사이트를 선택하세요...</option>
+    </select>
+  </div>
+
+  <!-- 엔진 선택 -->
+  <div class="section">
+    <div class="section-title">색인 요청 엔진 선택</div>
+    <div class="engine-grid">
+      <div class="engine-btn" data-engine="google">
+        <span class="dot-engine" style="background:#4285F4"></span>
+        <span class="name">Google</span>
+      </div>
+      <div class="engine-btn" data-engine="bing">
+        <span class="dot-engine" style="background:#00809D"></span>
+        <span class="name">Bing</span>
+      </div>
+      <div class="engine-btn" data-engine="naver">
+        <span class="dot-engine" style="background:#03C75A"></span>
+        <span class="name">Naver</span>
+      </div>
+      <div class="engine-btn" data-engine="daum">
+        <span class="dot-engine" style="background:#FFCD00"></span>
+        <span class="name">Daum</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 실행 -->
+  <div class="section">
+    <button class="btn btn-primary" id="btnStart">색인 요청 시작</button>
+    <button class="btn btn-danger" id="btnStop" style="display:none; margin-top:8px;">중지</button>
+
+    <div class="status-box" id="statusBox" style="display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="status-text" id="statusText">대기 중</span>
+        <span class="status-count" id="statusCount">0</span>
+      </div>
+      <div class="status-url" id="statusUrl"></div>
+    </div>
+  </div>
+
+  <!-- 대시보드 링 -->
+  <div class="section" style="text-align:center; border:none;">
+    <a class="link" id="dashboardLink">대시보드 열기</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
