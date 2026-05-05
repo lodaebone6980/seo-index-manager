@@ -62,65 +62,37 @@ export default function Sites() {
         </button>
       </div>
 
-      {/* 사이트 추가 폼 */}
       {showForm && (
         <form onSubmit={addSite} className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-slate-400 mb-1">사이트 이름 *</label>
-              <input
-                type="text"
-                required
-                value={form.name}
-                onChange={e => setForm({ ...form, name: e.target.value })}
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                placeholder="내 블로그"
-              />
+              <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="내 블로그" />
             </div>
             <div>
               <label className="block text-sm text-slate-400 mb-1">사이트 URL *</label>
-              <input
-                type="url"
-                required
-                value={form.url}
-                onChange={e => setForm({ ...form, url: e.target.value })}
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                placeholder="https://example.com"
-              />
+              <input type="url" required value={form.url} onChange={e => setForm({ ...form, url: e.target.value })}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="https://example.com" />
             </div>
             <div>
               <label className="block text-sm text-slate-400 mb-1">Sitemap URL (비워두면 자동 감지)</label>
-              <input
-                type="url"
-                value={form.sitemap_url}
-                onChange={e => setForm({ ...form, sitemap_url: e.target.value })}
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                placeholder="https://example.com/sitemap.xml"
-              />
+              <input type="url" value={form.sitemap_url} onChange={e => setForm({ ...form, sitemap_url: e.target.value })}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="https://example.com/sitemap.xml" />
             </div>
             <div>
               <label className="block text-sm text-slate-400 mb-1">RSS URL (비워두면 자동 감지)</label>
-              <input
-                type="url"
-                value={form.rss_url}
-                onChange={e => setForm({ ...form, rss_url: e.target.value })}
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                placeholder="https://example.com/feed"
-              />
+              <input type="url" value={form.rss_url} onChange={e => setForm({ ...form, rss_url: e.target.value })}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" placeholder="https://example.com/feed" />
             </div>
           </div>
           <div className="flex gap-3 mt-4">
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
-              추가
-            </button>
-            <button type="button" onClick={() => setShowForm(false)} className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-2 rounded-lg transition-colors">
-              취소
-            </button>
+            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">추가</button>
+            <button type="button" onClick={() => setShowForm(false)} className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-2 rounded-lg transition-colors">취소</button>
           </div>
         </form>
       )}
 
-      {/* 사이트 목록 */}
       {sites.length === 0 ? (
         <div className="bg-slate-800 rounded-xl p-12 border border-slate-700 text-center">
           <Globe className="w-12 h-12 text-slate-500 mx-auto mb-4" />
@@ -141,25 +113,13 @@ export default function Sites() {
                     {site.url}
                   </p>
                   <div className="flex gap-6 mt-3 text-sm">
-                    <span className="text-slate-300">
-                      URL: <span className="text-blue-400 font-medium">{site.url_count || 0}</span>개
-                    </span>
-                    <span className="text-slate-300">
-                      색인 완료: <span className="text-green-400 font-medium">{site.indexed_count || 0}</span>개
-                    </span>
+                    <span className="text-slate-300">URL: <span className="text-blue-400 font-medium">{site.url_count || 0}</span>개</span>
+                    <span className="text-slate-300">색인 완료: <span className="text-green-400 font-medium">{site.indexed_count || 0}</span>개</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Link
-                    to={`/sites/${site.id}`}
-                    className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg text-sm transition-colors"
-                  >
-                    상세보기
-                  </Link>
-                  <button
-                    onClick={() => deleteSite(site.id)}
-                    className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-700 transition-colors"
-                  >
+                  <Link to={`/sites/${site.id}`} className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg text-sm transition-colors">상세보기</Link>
+                  <button onClick={() => deleteSite(site.id)} className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
