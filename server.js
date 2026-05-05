@@ -19,7 +19,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-// PostgreSQL
+// ── PostgreSQL 연결 ──
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production'
@@ -27,7 +27,7 @@ const pool = new Pool({
     : false
 });
 
-// DB Init
+// ── DB 초기화 ──
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sites (
@@ -81,9 +81,13 @@ async function initDB() {
 }
 initDB().catch(console.error);
 
+// ═══════════════════════════════════════════════
 // API Routes
+// ═══════════════════════════════════════════════
 
-// Get all sites
+// ── 사이트 관리 ──
+
+// 모든 사이트 조회
 app.get('/api/sites', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -98,7 +102,7 @@ app.get('/api/sites', async (req, res) => {
   }
 });
 
-// Add site
+// 사이트 추가
 app.post('/api/sites', async (req, res) => {
   const { name, url, sitemap_url, rss_url } = req.body;
   try {
@@ -112,7 +116,7 @@ app.post('/api/sites', async (req, res) => {
   }
 });
 
-// Delete site
+// 사이트 삭제
 app.delete('/api/sites/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM sites WHERE id = $1', [req.params.id]);
@@ -122,7 +126,8 @@ app.delete('/api/sites/:id', async (req, res) => {
   }
 });
 
-// URL Extract (Sitemap & RSS)
+// ── URL 추출 (Sitemap & RSS) ──
+
 app.post('/api/sites/:id/extract', async (req, res) => {
   const siteId = req.params.id;
   try {
@@ -134,6 +139,7 @@ app.post('/api/sites/:id/extract', async (req, res) => {
     const site = siteResult.rows[0];
     const extractedUrls = [];
 
+    // Sitemap에서 URL 추출
     if (site.sitemap_url) {
       try {
         const sitemapUrls = await extractFromSitemap(site.sitemap_url);
@@ -143,6 +149,7 @@ app.post('/api/sites/:id/extract', async (req, res) => {
       }
     }
 
+    // RSS에서 URL 추출
     if (site.rss_url) {
       try {
         const rssUrls = await extractFromRSS(site.rss_url);
@@ -152,6 +159,7 @@ app.post('/api/sites/:id/extract', async (req, res) => {
       }
     }
 
+    // 자동 감지: sitemap/rss URL이 비어 있으면 기본 경로 시도
     if (!site.sitemap_url && !site.rss_url) {
       const baseUrl = site.url.replace(/\/$/, '');
       const attempts = [
@@ -182,6 +190,7 @@ app.post('/api/sites/:id/extract', async (req, res) => {
       }
     }
 
+    // 중복 제거 후 DB에 저장
     const uniqueUrls = [...new Map(extractedUrls.map(u => [u.url, u])).values()];
 
     let inserted = 0;
@@ -202,12 +211,13 @@ app.post('/api/sites/:id/extract', async (req, res) => {
   }
 });
 
-// Sitemap XML Parser
+// Sitemap XML 파싱
 async function extractFromSitemap(sitemapUrl) {
   const response = await axios.get(sitemapUrl, { timeout: 15000 });
   const parsed = await parseStringPromise(response.data);
   const urls = [];
 
+  // sitemap index인 경우 재귀적으로 파싱
   if (parsed.sitemapindex) {
     const sitemaps = parsed.sitemapindex.sitemap || [];
     for (const sm of sitemaps) {
@@ -221,6 +231,7 @@ async function extractFromSitemap(sitemapUrl) {
     }
   }
 
+  // urlset인 경우
   if (parsed.urlset) {
     const entries = parsed.urlset.url || [];
     for (const entry of entries) {
@@ -237,12 +248,13 @@ async function extractFromSitemap(sitemapUrl) {
   return urls;
 }
 
-// RSS/Atom Parser
+// RSS/Atom 파싱
 async function extractFromRSS(rssUrl) {
   const response = await axios.get(rssUrl, { timeout: 15000 });
   const parsed = await parseStringPromise(response.data);
   const urls = [];
 
+  // RSS 2.0
   if (parsed.rss) {
     const items = parsed.rss.channel?.[0]?.item || [];
     for (const item of items) {
@@ -253,6 +265,7 @@ async function extractFromRSS(rssUrl) {
     }
   }
 
+  // Atom
   if (parsed.feed) {
     const entries = parsed.feed.entry || [];
     for (const entry of entries) {
@@ -266,7 +279,9 @@ async function extractFromRSS(rssUrl) {
   return urls;
 }
 
-// Get URLs for a site
+// ── URL 관리 ──
+
+// 사이트의 URL 목록 조회
 app.get('/api/sites/:id/urls', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -289,9 +304,9 @@ app.get('/api/sites/:id/urls', async (req, res) => {
   }
 });
 
-// Add URLs manually
+// URL 수동 추가
 app.post('/api/sites/:id/urls', async (req, res) => {
-  const { urls } = req.body;
+  const { urls } = req.body; // [{url, title}]
   try {
     const inserted = [];
     for (const u of urls) {
@@ -307,10 +322,13 @@ app.post('/api/sites/:id/urls', async (req, res) => {
   }
 });
 
-// Index request
+// ── 색인 요청 관리 ──
+
+// 색인 요청 생성 (확장프로그램에서 호출)
 app.post('/api/index-request', async (req, res) => {
   const { url_id, engine } = req.body;
   try {
+    // 일일 한도 확인
     const limitCheck = await pool.query(
       'SELECT * FROM daily_limits WHERE engine = $1 AND date = CURRENT_DATE',
       [engine]
@@ -319,7 +337,7 @@ app.post('/api/index-request', async (req, res) => {
     if (limitCheck.rows.length > 0 && limitCheck.rows[0].count >= limitCheck.rows[0].max_limit) {
       return res.json({
         success: false,
-        message: `${engine} daily limit (${limitCheck.rows[0].max_limit}) reached.`,
+        message: `${engine} 일일 색인 요청 한도(${limitCheck.rows[0].max_limit}건)에 도달했습니다.`,
         limit_reached: true
       });
     }
@@ -329,6 +347,7 @@ app.post('/api/index-request', async (req, res) => {
       [url_id, engine, 'requesting']
     );
 
+    // 일일 카운트 증가
     await pool.query(`
       INSERT INTO daily_limits (engine, date, count) VALUES ($1, CURRENT_DATE, 1)
       ON CONFLICT (engine, date) DO UPDATE SET count = daily_limits.count + 1
@@ -340,7 +359,7 @@ app.post('/api/index-request', async (req, res) => {
   }
 });
 
-// Update index request status
+// 색인 요청 상태 업데이트 (확장프로그램에서 호출)
 app.patch('/api/index-request/:id', async (req, res) => {
   const { status, message } = req.body;
   try {
@@ -355,7 +374,7 @@ app.patch('/api/index-request/:id', async (req, res) => {
   }
 });
 
-// Dashboard stats
+// 대시보드 통계
 app.get('/api/dashboard/stats', async (req, res) => {
   try {
     const stats = await pool.query(`
@@ -400,7 +419,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
   }
 });
 
-// Daily limits settings
+// 일일 한도 설정
 app.post('/api/settings/limits', async (req, res) => {
   const { engine, max_limit } = req.body;
   try {
@@ -414,11 +433,12 @@ app.post('/api/settings/limits', async (req, res) => {
   }
 });
 
-// Queue - get next URL for engine
+// ── 확장프로그램용: 다음 처리할 URL 가져오기 ──
 app.get('/api/queue/:engine', async (req, res) => {
   const { engine } = req.params;
   const { site_id } = req.query;
   try {
+    // 해당 엔진에서 아직 요청하지 않은 URL 가져오기
     let query = `
       SELECT u.id as url_id, u.url, u.title, u.site_id, s.name as site_name
       FROM urls u
@@ -438,7 +458,7 @@ app.get('/api/queue/:engine', async (req, res) => {
 
     const result = await pool.query(query, params);
     if (result.rows.length === 0) {
-      return res.json({ done: true, message: 'All URLs processed.' });
+      return res.json({ done: true, message: '모든 URL이 처리되었습니다.' });
     }
 
     res.json({ done: false, next: result.rows[0] });
@@ -447,7 +467,7 @@ app.get('/api/queue/:engine', async (req, res) => {
   }
 });
 
-// Obsidian markdown export
+// ── 옵시디언 마크다운 내보내기 ──
 app.get('/api/export/obsidian', async (req, res) => {
   try {
     const sites = await pool.query('SELECT * FROM sites ORDER BY name');
@@ -463,9 +483,10 @@ app.get('/api/export/obsidian', async (req, res) => {
     );
 
     const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    let md = '# SEO Index Status\n\n';
-    md += `> Last updated: ${now}\n\n`;
+    let md = `# SEO 색인 요청 현황\n\n`;
+    md += `> 마지막 업데이트: ${now}\n\n`;
 
+    // 전체 요약
     const overview = await pool.query(`
       SELECT
         (SELECT COUNT(*) FROM urls) as total_urls,
@@ -473,21 +494,23 @@ app.get('/api/export/obsidian', async (req, res) => {
         (SELECT COUNT(DISTINCT url_id) FROM index_requests WHERE status = 'failed') as failed
     `);
     const ov = overview.rows[0];
-    md += '## Summary\n\n';
-    md += '| Item | Count |\n|------|-------|\n';
-    md += `| Total URLs | ${ov.total_urls} |\n`;
-    md += `| Indexed | ${ov.indexed} |\n`;
-    md += `| Failed | ${ov.failed} |\n\n`;
+    md += `## 전체 요약\n\n`;
+    md += `| 항목 | 수량 |\n|------|------|\n`;
+    md += `| 전체 URL | ${ov.total_urls} |\n`;
+    md += `| 색인 완료 | ${ov.indexed} |\n`;
+    md += `| 실패 | ${ov.failed} |\n\n`;
 
+    // 일일 한도
     if (dailyLimits.rows.length > 0) {
-      md += '## Daily Limits\n\n';
-      md += '| Engine | Count | Limit |\n|--------|-------|-------|\n';
+      md += `## 오늘의 색인 요청 현황\n\n`;
+      md += `| 엔진 | 요청 수 | 한도 |\n|------|---------|------|\n`;
       for (const dl of dailyLimits.rows) {
         md += `| ${dl.engine} | ${dl.count} | ${dl.max_limit} |\n`;
       }
       md += '\n';
     }
 
+    // 사이트별 상세
     for (const site of sites.rows) {
       md += `## ${site.name}\n\n`;
       md += `- URL: ${site.url}\n`;
@@ -497,10 +520,10 @@ app.get('/api/export/obsidian', async (req, res) => {
 
       const siteStats = stats.rows.filter(s => s.site_id === site.id);
       if (siteStats.length > 0) {
-        md += '| Engine | Status | Count |\n|--------|--------|-------|\n';
+        md += `| 엔진 | 상태 | 수량 |\n|------|------|------|\n`;
         for (const s of siteStats) {
-          const statusMap = { completed: 'Done', pending: 'Pending', failed: 'Failed', requesting: 'In Progress' };
-          md += `| ${s.engine} | ${statusMap[s.status] || s.status} | ${s.cnt} |\n`;
+          const statusKo = { completed: '완료', pending: '대기', failed: '실패', requesting: '진행중' };
+          md += `| ${s.engine} | ${statusKo[s.status] || s.status} | ${s.cnt} |\n`;
         }
         md += '\n';
       }
@@ -514,13 +537,6 @@ app.get('/api/export/obsidian', async (req, res) => {
   }
 });
 
-// Serve built frontend
-app.use(express.static(path.join(__dirname, 'dist')));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
-const PORT = process.env.PORT || 3000;
 // ── 확장프로그램 다운로드 ──
 app.get('/api/download/extension', (req, res) => {
   const extDir = path.join(__dirname, 'extension');
@@ -536,4 +552,11 @@ app.get('/api/download/extension', (req, res) => {
   archive.finalize();
 });
 
+// ── 빌드된 프론트엔드 서빙 ──
+app.use(express.static(path.join(__dirname, 'dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`SEO Index Manager running on port ${PORT}`));
