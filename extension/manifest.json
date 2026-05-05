@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SEO Index Manager",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Auto submit URLs to Naver, Daum, Google, Bing webmaster tools",
   "permissions": [
     "activeTab",
@@ -19,9 +19,7 @@
     "http://localhost:*/*",
     "https://*.up.railway.app/*"
   ],
-  "action": {
-    "default_popup": "popup.html"
-  },
+  "action": {},
   "background": {
     "service_worker": "background.js"
   },
