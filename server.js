@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import { parseStringPromise } from 'xml2js';
 import fs from 'fs';
+import archiver from 'archiver';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -520,4 +521,19 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+// ── 확장프로그램 다운로드 ──
+app.get('/api/download/extension', (req, res) => {
+  const extDir = path.join(__dirname, 'extension');
+  if (!fs.existsSync(extDir)) {
+    return res.status(404).json({ error: 'Extension folder not found' });
+  }
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', 'attachment; filename=seo-extension.zip');
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  archive.on('error', (err) => res.status(500).send({ error: err.message }));
+  archive.pipe(res);
+  archive.directory(extDir, 'seo-extension');
+  archive.finalize();
+});
+
 app.listen(PORT, () => console.log(`SEO Index Manager running on port ${PORT}`));
