@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Globe, ListChecks, Settings, Download } from 'lucide-react';
+import { LayoutDashboard, Globe, ListChecks, Settings, Download, Puzzle } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Sites from './pages/Sites';
 import SiteDetail from './pages/SiteDetail';
@@ -43,14 +43,24 @@ export default function App() {
             );
           })}
         </nav>
-        <a
-          href="/api/export/obsidian"
-          target="_blank"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-colors mt-auto"
-        >
-          <Download className="w-5 h-5" />
-          옵시디언 내보내기
-        </a>
+        <div className="mt-auto space-y-1">
+          <a
+            href="https://github.com/lodaebone6980/seo-index-manager/archive/refs/heads/main.zip"
+            target="_blank"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+          >
+            <Puzzle className="w-5 h-5" />
+            확장프로그램 다운로드
+          </a>
+          <a
+            href="/api/export/obsidian"
+            target="_blank"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+          >
+            <Download className="w-5 h-5" />
+            옵시디언 내보내기
+          </a>
+        </div>
       </aside>
 
       {/* Main Content */}
