@@ -62,7 +62,6 @@ export default function Dashboard() {
     <div>
       <h2 className="text-2xl font-bold text-white mb-6">대시보드</h2>
 
-      {/* 요약 카드 */}
       <div className="grid grid-cols-5 gap-4 mb-8">
         {summaryCards.map(card => {
           const Icon = card.icon;
@@ -79,7 +78,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-6 mb-8">
-        {/* 엔진별 색인 현황 차트 */}
         <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
           <h3 className="text-lg font-semibold text-white mb-4">엔진별 색인 현황</h3>
           {chartData.length > 0 ? (
@@ -102,7 +100,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* 오늘의 일일 한도 */}
         <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
           <h3 className="text-lg font-semibold text-white mb-4">오늘의 색인 요청 한도</h3>
           {daily_limits.length > 0 ? (
@@ -137,7 +134,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 최근 활동 */}
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
         <h3 className="text-lg font-semibold text-white mb-4">최근 색인 요청</h3>
         {recent_activity.length > 0 ? (
