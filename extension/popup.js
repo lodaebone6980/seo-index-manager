@@ -70,6 +70,13 @@ document.getElementById('btnStart').addEventListener('click', async () => {
     return;
   }
 
+  // 네이버/다음은 사이드패널로 처리
+  if (selectedEngine === 'naver' || selectedEngine === 'daum') {
+    const currentWindow = await chrome.windows.getCurrent();
+    await sendMessage({ action: 'open_sidepanel', windowId: currentWindow.id });
+    return;
+  }
+
   await sendMessage({
     action: 'start_indexing',
     engine: selectedEngine,
