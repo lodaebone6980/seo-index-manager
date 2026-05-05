@@ -8,10 +8,10 @@ let selectedEngine = null;
 document.addEventListener('DOMContentLoaded', async () => {
   // 저장된 설정 불러오기
   const config = await sendMessage({ action: 'get_config' });
-  document.getElementById('serverUrl').value = config.serverUrl || 'http://localhost:3000';
+  document.getElementById('serverUrl').value = config.serverUrl || 'https://web-production-b7ac2.up.railway.app';
   document.getElementById('googleApiKey').value = config.googleApiKey || '';
   document.getElementById('bingApiKey').value = config.bingApiKey || '';
-  document.getElementById('dashboardLink').href = config.serverUrl || 'http://localhost:3000';
+  document.getElementById('dashboardLink').href = config.serverUrl || 'https://web-production-b7ac2.up.railway.app';
 
   // 연결 테스트
   testConnection(config.serverUrl);
