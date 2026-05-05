@@ -4,7 +4,7 @@
 
 // 기본 설정
 const DEFAULT_CONFIG = {
-  serverUrl: 'http://localhost:3000',
+  serverUrl: 'https://web-production-b7ac2.up.railway.app',
   delays: {
     naver: 5000,    // 네이버: 캡차 방지 5초 딜레이
     daum: 4000,     // 다음: 4초 딜레이
@@ -292,7 +292,8 @@ function broadcastStatus(status, data) {
     status,
     ...data
   }).catch(() => {}); // popup이 닫혀 있을 때 에러 무시
-  // 알릜 (완료, 한도 도달, 에러
+
+  // 알림 (완료, 한도 도달, 에러)
   if (['completed', 'limit_reached', 'error'].includes(status)) {
     chrome.notifications.create({
       type: 'basic',
