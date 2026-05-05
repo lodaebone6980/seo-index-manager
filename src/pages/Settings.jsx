@@ -37,23 +37,17 @@ export default function SettingsPage() {
     <div className="max-w-2xl">
       <h2 className="text-2xl font-bold text-white mb-6">설정</h2>
 
-      {/* 서버 URL (확장프로그램 연결용) */}
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-6">
         <h3 className="text-lg font-semibold text-white mb-4">서버 연결 정보</h3>
         <div className="bg-slate-700/50 rounded-lg p-4 flex items-start gap-3">
           <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-slate-300 text-sm">
-              크롬 확장프로그램에서 아래 서버 URL을 입력하여 연결하세요.
-            </p>
-            <code className="block mt-2 bg-slate-900 text-green-400 px-3 py-2 rounded text-sm font-mono">
-              {serverUrl}
-            </code>
+            <p className="text-slate-300 text-sm">크롬 확장프로그램에서 아래 서버 URL을 입력하여 연결하세요.</p>
+            <code className="block mt-2 bg-slate-900 text-green-400 px-3 py-2 rounded text-sm font-mono">{serverUrl}</code>
           </div>
         </div>
       </div>
 
-      {/* 일일 한도 설정 */}
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-6">
         <h3 className="text-lg font-semibold text-white mb-4">엔진별 일일 색인 요청 한도</h3>
         <div className="space-y-4">
@@ -61,33 +55,26 @@ export default function SettingsPage() {
             <div key={engine}>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-sm text-slate-300 font-medium">{config.label}</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={limits[engine]}
+                <input type="number" min={1} value={limits[engine]}
                   onChange={e => setLimits({ ...limits, [engine]: parseInt(e.target.value) || 1 })}
-                  className="w-24 bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-white text-right focus:outline-none focus:border-blue-500"
-                />
+                  className="w-24 bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-white text-right focus:outline-none focus:border-blue-500" />
               </div>
               <p className="text-xs text-slate-500">{config.note}</p>
             </div>
           ))}
         </div>
-        <button
-          onClick={saveLimits}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors mt-6"
-        >
+        <button onClick={saveLimits}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors mt-6">
           <Save className="w-4 h-4" />
           {saved ? '저장 완료!' : '한도 저장'}
         </button>
       </div>
 
-      {/* 옵시디어 연동 숈내 */}
       <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
         <h3 className="text-lg font-semibold text-white mb-4">옵시디언 연동</h3>
         <div className="space-y-3 text-sm text-slate-300">
-          <p>대시보드의 "옵시디언 내보내기" 버튼을 눌르면 현재 색인 현황이 마크다운 파일로 다운로드됩니다.</p>
-          <p>이 파일을 옵시디언 본트 폴더에 저장하메 자동으로 동기화됩니다.</p>
+          <p>대시보드의 "옵시디언 내보내기" 버튼을 누르면 현재 색인 현황이 마크다운 파일로 다운로드됩니다.</p>
+          <p>이 파일을 옵시디언 볼트 폴더에 저장하면 자동으로 동기화됩니다.</p>
           <div className="bg-slate-700/50 rounded-lg p-4 mt-3">
             <p className="text-slate-400 text-xs mb-2">자동화 팁:</p>
             <p className="text-slate-300 text-xs">
