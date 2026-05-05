@@ -334,6 +334,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       saveConfig(msg.config).then(() => sendResponse({ saved: true }));
       return true;
 
+    case 'open_sidepanel':
+      chrome.sidePanel.open({ windowId: msg.windowId }).then(() => {
+        sendResponse({ opened: true });
+      }).catch(err => {
+        sendResponse({ opened: false, error: err.message });
+      });
+      return true;
+
     case 'test_connection':
       fetch(`${msg.serverUrl}/api/sites`)
         .then(res => res.json())
