@@ -178,4 +178,38 @@ export default function Sites() {
       ) : (
         <div className="grid gap-4">
           {sites.map(site => (
-            <div key={site.id} className="bg-slate-800 rounded-xl p-5 border border-slate-700 ho
+            <div key={site.id} className="bg-slate-800 rounded-xl p-5 border border-slate-700 hover:border-slate-600 transition-colors">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-white mb-1">{site.name}</h3>
+                  <a href={site.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1">
+                    {site.url} <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <div className="mt-2 flex gap-4 text-xs text-slate-500">
+                    <span>Sitemap: {site.sitemap_url || '-'}</span>
+                    <span>RSS: {site.rss_url || '-'}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/sites/${site.id}`}
+                    className="text-slate-400 hover:text-blue-400 px-3 py-1 rounded border border-slate-600 hover:border-blue-500 text-sm transition-colors"
+                  >
+                    상세보기
+                  </Link>
+                  <button
+                    onClick={() => deleteSite(site.id)}
+                    className="text-slate-400 hover:text-red-400 p-1 transition-colors"
+                    title="삭제"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
