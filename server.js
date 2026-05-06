@@ -102,7 +102,7 @@ app.get('/api/sites', async (req, res) => {
   }
 });
 
-// 사이트 추가
+// 사이트 추가 (등록 후 자동으로 URL 추출)
 app.post('/api/sites', async (req, res) => {
   const { name, url, sitemap_url, rss_url } = req.body;
   try {
@@ -110,11 +110,99 @@ app.post('/api/sites', async (req, res) => {
       'INSERT INTO sites (name, url, sitemap_url, rss_url) VALUES ($1, $2, $3, $4) RETURNING *',
       [name, url, sitemap_url, rss_url]
     );
-    res.json(result.rows[0]);
+    const site = result.rows[0];
+
+    // 백그라우드에서 자동 URL 추출 시작 (응답은 먼저 보냄)
+    res.json(site);
+
+    // 응답 후 비동기로 URL 추출 실행
+    autoExtractUrls(site.id).catch(err => {
+      console.error('Auto-extract failed for site', site.id, ':', err.message);
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+// 사이트 등록 시 자동 URL 추출 함수
+async function autoExtractUrls(siteId) {
+  const siteResult = await pool.query('SELECT * FROM sites WHERE id = $1', [siteId]);
+  if (siteResult.rows.length === 0) return;
+
+  const site = siteResult.rows[0];
+  const extractedUrls = [];
+
+  // Sitemap에서 URL 추출
+  if (site.sitemap_url) {
+    try {
+      const sitemapUrls = await extractFromSitemap(site.sitemap_url);
+      extractedUrls.push(...sitemapUrls.map(u => ({ ...u, source: 'sitemap' })));
+      console.log(`[Auto-Extract] Sitemap: ${sitemapUrls.length} URLs found for ${site.name}`);
+    } catch (e) {
+      console.error('[Auto-Extract] Sitemap error:', e.message);
+    }
+  }
+
+  // RSS에서 URL 추출
+  if (site.rss_url) {
+    try {
+      const rssUrls = await extractFromRSS(site.rss_url);
+      extractedUrls.push(...rssUrls.map(u => ({ ...u, source: 'rss' })));
+      console.log(`[Auto-Extract] RSS: ${rssUrls.length} URLs found for ${site.name}`);
+    } catch (e) {
+      console.error('[Auto-Extract] RSS error:', e.message);
+    }
+  }
+
+  // 자동 감지: sitemap/rss URL이 비어 있으면 기본 경로 시도
+  if (!site.sitemap_url && !site.rss_url) {
+    const baseUrl = site.url.replace(/\/$/, '');
+    const attempts = [
+      { url: `${baseUrl}/sitemap.xml`, type: 'sitemap' },
+      { url: `${baseUrl}/sitemap_index.xml`, type: 'sitemap' },
+      { url: `${baseUrl}/feed`, type: 'rss' },
+      { url: `${baseUrl}/rss`, type: 'rss' },
+      { url: `${baseUrl}/feed.xml`, type: 'rss' },
+    ];
+
+    for (const attempt of attempts) {
+      try {
+        if (attempt.type === 'sitemap') {
+          const urls = await extractFromSitemap(attempt.url);
+          if (urls.length > 0) {
+            extractedUrls.push(...urls.map(u => ({ ...u, source: 'sitemap' })));
+            await pool.query('UPDATE sites SET sitemap_url = $1 WHERE id = $2', [attempt.url, siteId]);
+            console.log(`[Auto-Extract] Auto-detected sitemap: ${attempt.url}`);
+            break;
+          }
+        } else {
+          const urls = await extractFromRSS(attempt.url);
+          if (urls.length > 0) {
+            extractedUrls.push(...urls.map(u => ({ ...u, source: 'rss' })));
+            await pool.query('UPDATE sites SET rss_url = $1 WHERE id = $2', [attempt.url, siteId]);
+            console.log(`[Auto-Extract] Auto-detected RSS: ${attempt.url}`);
+          }
+        }
+      } catch (e) { /* skip */ }
+    }
+  }
+
+  // 중복 제거 후 DB에 저장
+  const uniqueUrls = [...new Map(extractedUrls.map(u => [u.url, u])).values()];
+  let inserted = 0;
+  for (let i = 0; i < uniqueUrls.length; i++) {
+    const u = uniqueUrls[i];
+    try {
+      await pool.query(
+        'INSERT INTO urls (site_id, url, title, order_num, source) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (site_id, url) DO UPDATE SET title = $3',
+        [siteId, u.url, u.title || '', i + 1, u.source]
+      );
+      inserted++;
+    } catch (e) { /* skip */ }
+  }
+
+  console.log(`[Auto-Extract] ${site.name}: ${uniqueUrls.length} URLs found, ${inserted} inserted`);
+}
 
 // 사이트 삭제
 app.delete('/api/sites/:id', async (req, res) => {
@@ -337,7 +425,7 @@ app.post('/api/index-request', async (req, res) => {
     if (limitCheck.rows.length > 0 && limitCheck.rows[0].count >= limitCheck.rows[0].max_limit) {
       return res.json({
         success: false,
-        message: `${engine} 일일 색인 요청 한도(${limitCheck.rows[0].max_limit}건)에 도달했습니다.`,
+        message: `${engine} 일일 색인 요청 한도(${limitCheck.rows[0].max_limit}건)에 도단했습니다.`,
         limit_reached: true
       });
     }
@@ -467,96 +555,7 @@ app.get('/api/queue/:engine', async (req, res) => {
   }
 });
 
-// ── 옵시디언 마크다운 내보내기 ──
+// ── 옹시디언 마크다운 내보내기 ──
 app.get('/api/export/obsidian', async (req, res) => {
   try {
-    const sites = await pool.query('SELECT * FROM sites ORDER BY name');
-    const stats = await pool.query(`
-      SELECT u.site_id, ir.engine, ir.status, COUNT(*) as cnt
-      FROM index_requests ir
-      JOIN urls u ON ir.url_id = u.id
-      GROUP BY u.site_id, ir.engine, ir.status
-    `);
-
-    const dailyLimits = await pool.query(
-      'SELECT * FROM daily_limits WHERE date = CURRENT_DATE'
-    );
-
-    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    let md = `# SEO 색인 요청 현황\n\n`;
-    md += `> 마지막 업데이트: ${now}\n\n`;
-
-    // 전체 요약
-    const overview = await pool.query(`
-      SELECT
-        (SELECT COUNT(*) FROM urls) as total_urls,
-        (SELECT COUNT(DISTINCT url_id) FROM index_requests WHERE status = 'completed') as indexed,
-        (SELECT COUNT(DISTINCT url_id) FROM index_requests WHERE status = 'failed') as failed
-    `);
-    const ov = overview.rows[0];
-    md += `## 전체 요약\n\n`;
-    md += `| 항목 | 수량 |\n|------|------|\n`;
-    md += `| 전체 URL | ${ov.total_urls} |\n`;
-    md += `| 색인 완료 | ${ov.indexed} |\n`;
-    md += `| 실패 | ${ov.failed} |\n\n`;
-
-    // 일일 한도
-    if (dailyLimits.rows.length > 0) {
-      md += `## 오늘의 색인 요청 현황\n\n`;
-      md += `| 엔진 | 요청 수 | 한도 |\n|------|---------|------|\n`;
-      for (const dl of dailyLimits.rows) {
-        md += `| ${dl.engine} | ${dl.count} | ${dl.max_limit} |\n`;
-      }
-      md += '\n';
-    }
-
-    // 사이트별 상세
-    for (const site of sites.rows) {
-      md += `## ${site.name}\n\n`;
-      md += `- URL: ${site.url}\n`;
-      if (site.sitemap_url) md += `- Sitemap: ${site.sitemap_url}\n`;
-      if (site.rss_url) md += `- RSS: ${site.rss_url}\n`;
-      md += '\n';
-
-      const siteStats = stats.rows.filter(s => s.site_id === site.id);
-      if (siteStats.length > 0) {
-        md += `| 엔진 | 상태 | 수량 |\n|------|------|------|\n`;
-        for (const s of siteStats) {
-          const statusKo = { completed: '완료', pending: '대기', failed: '실패', requesting: '진행중' };
-          md += `| ${s.engine} | ${statusKo[s.status] || s.status} | ${s.cnt} |\n`;
-        }
-        md += '\n';
-      }
-    }
-
-    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="SEO-Index-Status.md"');
-    res.send(md);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ── 확장프로그램 다운로드 ──
-app.get('/api/download/extension', (req, res) => {
-  const extDir = path.join(__dirname, 'extension');
-  if (!fs.existsSync(extDir)) {
-    return res.status(404).json({ error: 'Extension folder not found' });
-  }
-  res.setHeader('Content-Type', 'application/zip');
-  res.setHeader('Content-Disposition', 'attachment; filename=seo-extension.zip');
-  const archive = archiver('zip', { zlib: { level: 9 } });
-  archive.on('error', (err) => res.status(500).send({ error: err.message }));
-  archive.pipe(res);
-  archive.directory(extDir, 'seo-extension');
-  archive.finalize();
-});
-
-// ── 빌드된 프론트엔드 서빙 ──
-app.use(express.static(path.join(__dirname, 'dist')));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`SEO Index Manager running on port ${PORT}`));
+    const sites = await pool.query('SELECT * FROM si
