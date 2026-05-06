@@ -178,44 +178,4 @@ export default function Sites() {
       ) : (
         <div className="grid gap-4">
           {sites.map(site => (
-            <div key={site.id} className="bg-slate-800 rounded-xl p-5 border border-slate-700 hover:border-slate-600 transition-colors">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <Link to={`/sites/${site.id}`} className="text-lg font-semibold text-white hover:text-blue-400 transition-colors">
-                    {site.name}
-                  </Link>
-                  <p className="text-slate-400 text-sm mt-1 flex items-center gap-1">
-                    <ExternalLink className="w-3 h-3" />
-                    {site.url}
-                  </p>
-                  <div className="flex gap-6 mt-3 text-sm">
-                    <span className="text-slate-300">
-                      URL: <span className="text-blue-400 font-medium">{site.url_count || 0}</span>개
-                    </span>
-                    <span className="text-slate-300">
-                      색인 완료: <span className="text-green-400 font-medium">{site.indexed_count || 0}</span>개
-                    </span>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Link
-                    to={`/sites/${site.id}`}
-                    className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg text-sm transition-colors"
-                  >
-                    상했보기
-                  </Link>
-                  <button
-                    onClick={() => deleteSite(site.id)}
-                    className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-700 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+            <div key={site.id} className="bg-slate-800 rounded-xl p-5 border border-slate-700 ho
