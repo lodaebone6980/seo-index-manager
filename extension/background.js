@@ -1,18 +1,18 @@
-// ═══════════════════════════════════════════════
-// SEO 색인 관리자 - Background Service Worker
-// ═══════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââ
+// SEO ìì¸ ê´ë¦¬ì - Background Service Worker
+// âââââââââââââââââââââââââââââââââââââââââââââââ
 
-// 아이콘 클릭 시 사이드패널 열기
+// ìì´ì½ í´ë¦­ ì ì¬ì´ëí¨ë ì´ê¸°
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
-// 기본 설정
+// ê¸°ë³¸ ì¤ì 
 const DEFAULT_CONFIG = {
   serverUrl: 'https://web-production-b7ac2.up.railway.app',
   delays: {
-    naver: 5000,    // 네이버: 캡차 방지 5초 둜레이
-    daum: 4000,     // 다음: 4초 딜레이
-    google: 1000,   // 구글 API: 1초
-    bing: 1000,     // 빙 API: 1초
+    naver: 5000,    // ë¤ì´ë²: ìº¡ì°¨ ë°©ì§ 5ì´ ëë ì´
+    daum: 4000,     // ë¤ì: 4ì´ ëë ì´
+    google: 1000,   // êµ¬ê¸ API: 1ì´
+    bing: 1000,     // ë¹ API: 1ì´
   },
   googleApiKey: '',
   bingApiKey: '',
@@ -23,7 +23,7 @@ let currentEngine = null;
 let currentSiteId = null;
 let processedCount = 0;
 
-// ── 설정 관리 ──
+// ââ ì¤ì  ê´ë¦¬ ââ
 async function getConfig() {
   const result = await chrome.storage.local.get('config');
   return { ...DEFAULT_CONFIG, ...result.config };
@@ -33,7 +33,7 @@ async function saveConfig(config) {
   await chrome.storage.local.set({ config });
 }
 
-// ── API 통신 ──
+// ââ API íµì  ââ
 async function apiCall(path, options = {}) {
   const config = await getConfig();
   const url = `${config.serverUrl}${path}`;
@@ -44,13 +44,13 @@ async function apiCall(path, options = {}) {
   return res.json();
 }
 
-// ── 다음 처리할 URL 가져오기 ──
+// ââ ë¤ì ì²ë¦¬í  URL ê°ì ¸ì¤ê¸° ââ
 async function getNextUrl(engine, siteId) {
   const params = siteId ? `?site_id=${siteId}` : '';
   return apiCall(`/api/queue/${engine}${params}`);
 }
 
-// ── 색인 요청 생성 ──
+// ââ ìì¸ ìì²­ ìì± ââ
 async function createIndexRequest(urlId, engine) {
   return apiCall('/api/index-request', {
     method: 'POST',
@@ -58,7 +58,7 @@ async function createIndexRequest(urlId, engine) {
   });
 }
 
-// ── 색인 요청 상태 업데이트 ──
+// ââ ìì¸ ìì²­ ìí ìë°ì´í¸ ââ
 async function updateIndexRequest(requestId, status, message = '') {
   return apiCall(`/api/index-request/${requestId}`, {
     method: 'PATCH',
@@ -66,13 +66,13 @@ async function updateIndexRequest(requestId, status, message = '') {
   });
 }
 
-// ═══════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââ
 // Google Indexing API
-// ═══════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââ
 async function submitToGoogle(url) {
   const config = await getConfig();
   if (!config.googleApiKey) {
-    return { success: false, message: 'Google API 키가 설정되지 않았습니다.' };
+    return { success: false, message: 'Google API í¤ê° ì¤ì ëì§ ìììµëë¤.' };
   }
 
   try {
@@ -89,23 +89,23 @@ async function submitToGoogle(url) {
     );
 
     if (response.ok) {
-      return { success: true, message: 'Google 색인 요청 성공' };
+      return { success: true, message: 'Google ìì¸ ìì²­ ì±ê³µ' };
     } else {
       const error = await response.json();
-      return { success: false, message: `Google API 오류: ${error.error?.message || response.status}` };
+      return { success: false, message: `Google API ì¤ë¥: ${error.error?.message || response.status}` };
     }
   } catch (err) {
-    return { success: false, message: `Google 요청 실패: ${err.message}` };
+    return { success: false, message: `Google ìì²­ ì¤í¨: ${err.message}` };
   }
 }
 
-// ═══════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââ
 // Bing URL Submission API
-// ═══════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââ
 async function submitToBing(url, siteUrl) {
   const config = await getConfig();
   if (!config.bingApiKey) {
-    return { success: false, message: 'Bing API 키가 설정되지 않았습니다.' };
+    return { success: false, message: 'Bing API í¤ê° ì¤ì ëì§ ìììµëë¤.' };
   }
 
   try {
@@ -122,22 +122,22 @@ async function submitToBing(url, siteUrl) {
     );
 
     if (response.ok) {
-      return { success: true, message: 'Bing 색인 요청 성공' };
+      return { success: true, message: 'Bing ìì¸ ìì²­ ì±ê³µ' };
     } else {
       const errorText = await response.text();
-      return { success: false, message: `Bing API 오류: ${errorText}` };
+      return { success: false, message: `Bing API ì¤ë¥: ${errorText}` };
     }
   } catch (err) {
-    return { success: false, message: `Bing 요청 실패: ${err.message}` };
+    return { success: false, message: `Bing ìì²­ ì¤í¨: ${err.message}` };
   }
 }
 
-// ═══════════════════════════════════════════════
-// 네이버/다음 브라우저 자동화 (Content Script 통신)
-// ═══════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââ
+// ë¤ì´ë²/ë¤ì ë¸ë¼ì°ì  ìëí (Content Script íµì )
+// âââââââââââââââââââââââââââââââââââââââââââââââ
 async function submitViaContentScript(engine, url) {
   return new Promise((resolve) => {
-    // 바로 수집 요청 페이지로 이동 (content script에서 페이지 이동 불필요)
+    // ë°ë¡ ìì§ ìì²­ íì´ì§ë¡ ì´ë (content scriptìì íì´ì§ ì´ë ë¶íì)
     const webmasterUrls = {
       naver: 'https://searchadvisor.naver.com/console/crawl/request',
       daum: 'https://webmaster.daum.net/url-submission'
@@ -151,38 +151,38 @@ async function submitViaContentScript(engine, url) {
         if (tabId !== tab.id || info.status !== 'complete') return;
         loadCount++;
 
-        // SPA 리다이렉트 등으로 여러번 로드될 수 있으므로 첫 번째 complete만 처리
+        // SPA ë¦¬ë¤ì´ë í¸ ë±ì¼ë¡ ì¬ë¬ë² ë¡ëë  ì ìì¼ë¯ë¡ ì²« ë²ì§¸ completeë§ ì²ë¦¬
         if (messageSent) return;
         messageSent = true;
 
         chrome.tabs.onUpdated.removeListener(listener);
 
-        // DOM 안정화 대기 후 메시지 전달 (5초 - 네이버 SPA 렌더링 대기)
+        // DOM ìì í ëê¸° í ë©ìì§ ì ë¬ (5ì´ - ë¤ì´ë² SPA ë ëë§ ëê¸°)
         setTimeout(() => {
           chrome.tabs.sendMessage(tab.id, {
             action: 'submit_url',
             engine,
             url,
           }, (response) => {
-            // chrome.runtime.lastError 체크 (content script 미응답)
+            // chrome.runtime.lastError ì²´í¬ (content script ë¯¸ìëµ)
             if (chrome.runtime.lastError) {
               setTimeout(() => chrome.tabs.remove(tab.id).catch(() => {}), 1000);
               resolve({
                 success: false,
-                message: `${engine}: 콘텐츠 스크립트 응답 없음. 로그인 상태를 확인하세요.`
+                message: `${engine}: ì½íì¸  ì¤í¬ë¦½í¸ ìëµ ìì. ë¡ê·¸ì¸ ìíë¥¼ íì¸íì¸ì.`
               });
               return;
             }
 
-            // 탭 닫기
+            // í­ ë«ê¸°
             setTimeout(() => chrome.tabs.remove(tab.id).catch(() => {}), 2000);
 
             if (response?.success) {
-              resolve({ success: true, message: response.message || `${engine} 색인 요청 성공` });
+              resolve({ success: true, message: response.message || `${engine} ìì¸ ìì²­ ì±ê³µ` });
             } else {
               resolve({
                 success: false,
-                message: response?.message || `${engine} 색인 요청 실패`
+                message: response?.message || `${engine} ìì¸ ìì²­ ì¤í¨`
               });
             }
           });
@@ -191,22 +191,22 @@ async function submitViaContentScript(engine, url) {
 
       chrome.tabs.onUpdated.addListener(listener);
 
-      // 타임아웃: 45초 (네이버 로딩이 느릴 수 있음)
+      // íììì: 45ì´ (ë¤ì´ë² ë¡ë©ì´ ëë¦´ ì ìì)
       setTimeout(() => {
         if (!messageSent) {
           messageSent = true;
           chrome.tabs.onUpdated.removeListener(listener);
           chrome.tabs.remove(tab.id).catch(() => {});
-          resolve({ success: false, message: `${engine} 색인 요청 타임아웃` });
+          resolve({ success: false, message: `${engine} ìì¸ ìì²­ íììì` });
         }
       }, 45000);
     });
   });
 }
 
-// ═══════════════════════════════════════════════
-// 메인 처리 루프
-// ═══════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââ
+// ë©ì¸ ì²ë¦¬ ë£¨í
+// âââââââââââââââââââââââââââââââââââââââââââââââ
 async function processQueue(engine, siteId) {
   if (isProcessing) return;
   isProcessing = true;
@@ -221,13 +221,13 @@ async function processQueue(engine, siteId) {
 
   try {
     while (isProcessing) {
-      // 다음 URL 가져오기
+      // ë¤ì URL ê°ì ¸ì¤ê¸°
       const queueResult = await getNextUrl(engine, siteId);
 
       if (queueResult.done) {
         broadcastStatus('completed', {
           engine,
-          message: '모든 URL 처리 완료',
+          message: 'ëª¨ë  URL ì²ë¦¬ ìë£',
           processedCount
         });
         break;
@@ -240,7 +240,7 @@ async function processQueue(engine, siteId) {
         processedCount
       });
 
-      // 색인 요청 레코드 생성
+      // ìì¸ ìì²­ ë ì½ë ìì±
       const requestResult = await createIndexRequest(nextUrl.url_id, engine);
 
       if (requestResult.limit_reached) {
@@ -256,7 +256,7 @@ async function processQueue(engine, siteId) {
 
       const requestId = requestResult.request.id;
 
-      // 엔진별 색인 요청 실행
+      // ìì§ë³ ìì¸ ìì²­ ì¤í
       let result;
       switch (engine) {
         case 'google':
@@ -271,7 +271,7 @@ async function processQueue(engine, siteId) {
           break;
       }
 
-      // 결과 업데이트
+      // ê²°ê³¼ ìë°ì´í¸
       await updateIndexRequest(
         requestId,
         result.success ? 'completed' : 'failed',
@@ -280,7 +280,7 @@ async function processQueue(engine, siteId) {
 
       processedCount++;
 
-      // 딜레이
+      // ëë ì´
       if (isProcessing) {
         await new Promise(resolve => setTimeout(resolve, delay));
       }
@@ -306,21 +306,21 @@ function stopProcessing() {
   });
 }
 
-// ── 상태 브로드캐스트 ──
+// ââ ìí ë¸ë¡ëìºì¤í¸ ââ
 function broadcastStatus(status, data) {
   chrome.runtime.sendMessage({
     type: 'status_update',
     status,
     ...data
-  }).catch(() => {}); // popup이 닫혀 있을 때 에러 무시
+  }).catch(() => {}); // popupì´ ë«í ìì ë ìë¬ ë¬´ì
 
-  // 알림 (완료, 한도 도달, 에러)
+  // ìë¦¼ (ìë£, íë ëë¬, ìë¬)
   if (['completed', 'limit_reached', 'error'].includes(status)) {
     chrome.notifications.create({
       type: 'basic',
       iconUrl: 'icons/icon128.png',
-      title: 'SEO 색인 관리자',
-      message: data.message || `${data.engine} 처리 ${status}`
+      title: 'SEO ìì¸ ê´ë¦¬ì',
+      message: data.message || `${data.engine} ì²ë¦¬ ${status}`
     });
   }
 }
@@ -329,4 +329,33 @@ function broadcastStatus(status, data) {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   switch (msg.action) {
     case 'start_indexing':
-      processQueue(msg.eng
+      processQueue(msg.engine, msg.siteId);
+      sendResponse({ success: true });
+      break;
+    case 'stop_indexing':
+      stopProcessing();
+      sendResponse({ success: true });
+      break;
+    case 'get_status':
+      sendResponse({
+        isProcessing,
+        engine: currentEngine,
+        siteId: currentSiteId,
+        processedCount
+      });
+      break;
+    case 'get_config':
+      getConfig().then(config => sendResponse(config));
+      return true;
+    case 'save_config':
+      saveConfig(msg.config).then(() => sendResponse({ success: true }));
+      return true;
+    case 'test_connection':
+      apiCall('/api/sites')
+        .then(() => sendResponse({ success: true }))
+        .catch(err => sendResponse({ success: false, message: err.message }));
+      return true;
+    default:
+      sendResponse({ error: 'Unknown action' });
+  }
+});
