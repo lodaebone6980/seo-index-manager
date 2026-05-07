@@ -7,6 +7,8 @@ import axios from 'axios';
 import { parseStringPromise } from 'xml2js';
 import fs from 'fs';
 import archiver from 'archiver';
+import { GoogleAuth } from 'google-auth-library';
+
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -559,4 +561,105 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
+// ==========================================
+// Google Indexing API
+// ==========================================
+app.post('/api/index/google', async (req, res) => {
+  try {
+    const { url, type } = req.body; // type: 'URL_UPDATED' or 'URL_DELETED'
+    if (!url) return res.status(400).json({ error: 'URL is required' });
+    
+    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+    
+    if (!clientEmail || !privateKey) {
+      return res.status(500).json({ error: 'Google credentials not configured' });
+    }
+    
+    const auth = new GoogleAuth({
+      credentials: {
+        client_email: clientEmail,
+        private_key: privateKey.replace(/\\n/g, '\n'),
+      },
+      scopes: ['https://www.googleapis.com/auth/indexing'],
+    });
+    
+    const client = await auth.getClient();
+    const accessToken = await client.getAccessToken();
+    
+    const response = await fetch('https://indexing.googleapis.com/v3/urlNotifications:publish', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + accessToken.token,
+      },
+      body: JSON.stringify({
+        url: url,
+        type: type || 'URL_UPDATED',
+      }),
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      res.json({ success: true, message: 'Google indexing request sent', data: result });
+    } else {
+      res.status(response.status).json({ success: false, error: result.error?.message || 'Google API error', data: result });
+    }
+  } catch (err) {
+    console.error('Google Indexing error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Google Indexing batch endpoint
+app.post('/api/index/google/batch', async (req, res) => {
+  try {
+    const { urls, type } = req.body;
+    if (!urls || !Array.isArray(urls)) return res.status(400).json({ error: 'urls array is required' });
+    
+    const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+    
+    if (!clientEmail || !privateKey) {
+      return res.status(500).json({ error: 'Google credentials not configured' });
+    }
+    
+    const auth = new GoogleAuth({
+      credentials: {
+        client_email: clientEmail,
+        private_key: privateKey.replace(/\\n/g, '\n'),
+      },
+      scopes: ['https://www.googleapis.com/auth/indexing'],
+    });
+    
+    const client = await auth.getClient();
+    const accessToken = await client.getAccessToken();
+    
+    const results = [];
+    for (const url of urls) {
+      try {
+        const response = await fetch('https://indexing.googleapis.com/v3/urlNotifications:publish', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + accessToken.token,
+          },
+          body: JSON.stringify({ url, type: type || 'URL_UPDATED' }),
+        });
+        const data = await response.json();
+        results.push({ url, success: response.ok, data });
+      } catch (e) {
+        results.push({ url, success: false, error: e.message });
+      }
+    }
+    
+    res.json({ success: true, results });
+  } catch (err) {
+    console.error('Google batch indexing error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.listen(PORT, () => console.log(`SEO Index Manager running on port ${PORT}`));
